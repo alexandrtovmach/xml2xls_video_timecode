@@ -1,0 +1,11 @@
+body {
+    margin: 0;
+}
+
+.list {
+    max-width: 25vw;
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+    margin: 20px;
+}

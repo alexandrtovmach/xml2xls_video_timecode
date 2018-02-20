@@ -1,0 +1,19 @@
+Would need to use sheetJS or another xls js library.
+http://sheetjs.com/demos/table.html
+
+the html user-end should have this table layout so users can edit any entry cells before converting to an XLS.
+
+I can share with you the code I have that parses the XML to JSON, and gets timcode when we start.
+
+The logic rules as far as listing it are:
+
+1.) list the in and out points of a clip. If there is a cut, but it is not a new file, do not count that as a new entry on the spreadsheet. If there is a gap between a cut (clip1.mov ends at 08:00 and starts again at 08:15, with no media in between would be listed on the same entry)
+
+2.) there are different tracks that might have media playing at the same time (splitscreen, picture-in-picture, etc). These should be placed based on when they first start. If there are two videos that start at the same time, the one on the lower track is placed first.
+
+3.) You will need a blacklist that ignores certain media names and does no calculations based on them. For example, Title 01, intro.mov, lower_thirds.aep, etc. Similarly, you should have a "whitelist" which for certain filenames, it will trigger a special entry into a cell.
+
+4.) You must be able to list files within sequences. For example, there is a subsequence which you must get the source in and out points, and then figure out which media is being displayed at those certain times in that sequence following the same rules as above. For sequences within sequences, the inner sequence data is still in the XML file.
+
+5.) If there is audio that is not matched up with the video file and from that video file, then it should as well be listed. The audio is listed in a seperate section from the video, and should follow the same logic steps as video.
+I can go over these more in depth if you need to
