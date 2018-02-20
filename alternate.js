@@ -58,8 +58,52 @@ function loadFile(e) {
 
 function receivedText(event) {
 	var x2js = new X2JS();
-	var jsonObj = x2js.xml_str2json( event.target.result );
+	var jsonObj = x2js.xml_str2json( event.target.result ).xmeml.sequence;
+
+	var resultJSON = {
+		projectName: jsonObj.labels.label2,
+		audio: jsonObj.media.audio.track.filter(el => el.clipitem && el.clipitem.length),
+		video: jsonObj.media.video.track.filter(el => el.clipitem && el.clipitem.length)
+	}
+	// console.log(resultJSON.video[0].clipitem);
+
+	// limit =================================================================================================
+	var url = "http://oss.sheetjs.com/test_files/formula_stress_test.xlsx";
+
+	/* set up async GET request */
+	var req = new XMLHttpRequest();
+	req.open("GET", url, true);
+	req.responseType = "arraybuffer";
+
+	req.onload = function(e) {
+		var data = new Uint8Array(req.response);
+		var workbook = XLSX.read(data, {type:"array"});
+
+		var ws = XLSX.utils.json_to_sheet(resultJSON.video[0].clipitem);
+
+		/* Add the sheet name to the list */
+		workbook.SheetNames = [];
+		workbook.SheetNames.push(resultJSON.projectName);
+
+		/* Load the worksheet object */
+		workbook.Sheets = {};
+		workbook.Sheets[resultJSON.projectName] = ws;
+
+		// console.log(resultJSON.video[0].clipitem);
+		console.log(workbook);
+
+		var link = document.getElementById('downloadlink');
+		link.href = XLSX.writeFile(workbook, 'out.xls');
+		link.style.display = 'block';
+	}
+
+	req.send();
 	
+
+	// function makeTextFile(text) {
+	// 	var data = new Blob([text], {type: 'text/plain'});  
+	//   return window.URL.createObjectURL(data);
+	// }
 	// var timerate = jsonObj.xmeml.sequence.rate.timebase;
 	// //console.log(jsonObj);
 	// 		//document.forms['myform'].elements['text'].value = JSON.stringify(jsonObj);
@@ -167,6 +211,3 @@ function receivedText(event) {
 	// 	}
 	// }
 };
-
-// reader.readAsText(evt.target.files[0]);
-
