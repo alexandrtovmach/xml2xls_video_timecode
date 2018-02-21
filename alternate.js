@@ -61,153 +61,119 @@ function receivedText(event) {
 	var jsonObj = x2js.xml_str2json( event.target.result ).xmeml.sequence;
 
 	var resultJSON = {
-		projectName: jsonObj.labels.label2,
-		audio: jsonObj.media.audio.track.filter(el => el.clipitem && el.clipitem.length),
-		video: jsonObj.media.video.track.filter(el => el.clipitem && el.clipitem.length)
-	}
-	// console.log(resultJSON.video[0].clipitem);
-
-	// limit =================================================================================================
-	var url = "http://oss.sheetjs.com/test_files/formula_stress_test.xlsx";
-
-	/* set up async GET request */
-	var req = new XMLHttpRequest();
-	req.open("GET", url, true);
-	req.responseType = "arraybuffer";
-
-	req.onload = function(e) {
-		var data = new Uint8Array(req.response);
-		var workbook = XLSX.read(data, {type:"array"});
-
-		var ws = XLSX.utils.json_to_sheet(resultJSON.video[0].clipitem);
-
-		/* Add the sheet name to the list */
-		workbook.SheetNames = [];
-		workbook.SheetNames.push(resultJSON.projectName);
-
-		/* Load the worksheet object */
-		workbook.Sheets = {};
-		workbook.Sheets[resultJSON.projectName] = ws;
-
-		// console.log(resultJSON.video[0].clipitem);
-		console.log(workbook);
-
-		var link = document.getElementById('downloadlink');
-		link.href = XLSX.writeFile(workbook, 'out.xls');
-		link.style.display = 'block';
+		prjName: jsonObj.labels.label2,
+		audio: jsonObj.media.audio.track.filter(el => el.clipitem && el.clipitem.length)[0].clipitem,
+		video: jsonObj.media.video.track.filter(el => el.clipitem && el.clipitem.length)[0].clipitem
 	}
 
-	req.send();
+	// console.log(resultJSON);
+
+	// console.log(parseMedia(resultJSON.video[0]));
+
+
+	saveXLS(joinCuttedMedia(resultJSON), ['video', 'audio'], resultJSON.prjName)
+
+
 	
 
-	// function makeTextFile(text) {
-	// 	var data = new Blob([text], {type: 'text/plain'});  
-	//   return window.URL.createObjectURL(data);
-	// }
-	// var timerate = jsonObj.xmeml.sequence.rate.timebase;
-	// //console.log(jsonObj);
-	// 		//document.forms['myform'].elements['text'].value = JSON.stringify(jsonObj);
-	// document.forms['myform'].elements['text'].value +='\n';
-	// for (i2 = 0, len2 = numberArr2.length; i2 < len2; i2++) {
-	// 	if (jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.constructor == "function Object() { [native code] }") {
-	// 		if (mediaIgnoreArr.includes(jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.name.toUpperCase) == false) {
+	function joinCuttedMedia(obj) {
+		const a = [], v = [];
 
-	// 			str = deleteLast(jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.name);
-	// 			startTime = jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.start;
-	// 			endTime = jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.end;
-	// 			ownedBy = '';
-	// 			VURcat = '';
-	// 			trackNumber = numberArr2[i2] + 1;
-	// 			inC = jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.in;
-	// 			outC = jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.out;
-	// 			//console.log(jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.out)
-	// 			bothUndScores = containsUnderscore(str);
-	// 			allElse = str;
-	// 			entryLine = {allElse, startTime, endTime, ownedBy, bothUndScores, VURcat, trackNumber, inC, outC};
-	// 			timelineArray.push(entryLine);
+		for (let i = 0; i < obj.video.length; i++) {
+			if (obj.video[i+1] && obj.video[i].name === obj.video[i+1].name) {
+				if (obj.video[i].end === obj.video[i+1].start) {
+					obj.video[i].end = obj.video[i+1].end;
+					v.push(obj.video[i]);
+					i++;
+				} else {
+					v.push(obj.video[i]);
+					v.push(generateBlank(obj.video[i].end, obj.video[i+1].start));
+				}
+			} else {
+				v.push(obj.video[i]);
+			}
+		}
 
-	// 		}
-	// 		//document.forms['myform'].elements['text'].value += allElse + "," + displayTime(jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.start, timerate) + ",";
-	// 	} else if (jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.constructor == "function Array() { [native code] }") {
-	// 		for (i = 0, len = jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem.length, text = ""; i < len; i++) {
-	// 			if (mediaIgnoreArr.includes(jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem[i].name.toUpperCase) == false) {
-	// 				str = deleteLast(jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem[i].name);
-	// 				startTime = jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem[i].start;
-	// 				endTime = jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem[i].end;
-	// 				ownedBy = '';
-	// 				VURcat = '';
-	// 				trackNumber = numberArr2[i2] + 1;
-	// 				inC = jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem[i].in;
-	// 				outC = jsonObj.xmeml.sequence.media.video.track[numberArr2[i2]].clipitem[i].out;
+		for (let i = 0; i < obj.audio.length; i++) {
+			if (obj.audio[i+1] && obj.audio[i].name === obj.audio[i+1].name) {
+				if (obj.audio[i].end === obj.audio[i+1].start) {
+					obj.audio[i].end = obj.audio[i+1].end;
+					a.push(obj.audio[i]);
+					i++;
+				} else {
+					a.push(obj.audio[i]);
+					a.push(generateBlank(obj.audio[i].end, obj.audio[i+1].start));
+				}
+			} else {
+				a.push(obj.audio[i]);
+			}
+		}
 
-	// 				bothUndScores = containsUnderscore(str);
-	// 				allElse = str;
-	// 				entryLine = {allElse, startTime, endTime, ownedBy, bothUndScores, VURcat, trackNumber, inC, outC};
-	// 				timelineArray.push(entryLine);
-	// 			}
-	// 		}
-	// 	}
-	// 	//end of l
-	// }
-
-	// cleansedArray = [];
-	// cleansedArray1 = [];
-	// cleansedArray2 = [];
-
-	// timelineArray.sort(function(a, b){
-	// 	return a.startTime-b.startTime;
-	// })
-	// console.log(timelineArray);
-	// sortedArray.push(timelineArray[0]);
-	// for (i=1 , len = timelineArray.length; i < len; i++) {
-	// 	if (nestedCap.includes(timelineArray[i].allElse.toUpperCase) == false && timelineArray[i].bothUndScores == timelineArray[i - 1].bothUndScores) {
-	// 		console.log(i);
-	// 		sortedArray[sortedArray.length - 1].endTime = timelineArray[i].endTime; // if the names are equal, we put the end time on new array
-
-	// 	} else {
-	// 		sortedArray.push(timelineArray[i]);
-	// 	}
-	// }
-	// //console.log(sortedArray);
-	// var byName = sortedArray.slice(0);
-	// byName.sort(function(a,b) {
-	// 		var x = a.bothUndScores.toLowerCase();
-	// 		var y = b.bothUndScores.toLowerCase();
-	// 		return x < y ? -1 : x > y ? 1 : 0;
-	// });
+		return {
+			prjName: obj.prjName,
+			video: v.map(el => parseMedia(el)),
+			audio: a.map(el => parseMedia(el)),
+		}
+	}
 
 
+	function generateBlank(start, end) {
+		return {
+			name: '***blank space***',
+			start: start,
+			end: end,
+			in: 0,
+			out: 0,
+			logginginfo: {description: ''},
+			rate: {timebase: 30}
+		}
+	}
 
-	// cleansedArray.push(byName[0]);
-	// for (i=1 , len = byName.length; i < len; i++) {
-	// 	if (nestedCap.includes(byName[i].allElse.toUpperCase) == false && byName[i].bothUndScores == byName[i - 1].bothUndScores && byName[i].startTime == byName[i -1].endTime) {
-	// 		//console.log(i);
-	// 		cleansedArray[cleansedArray.length - 1].endTime = byName[i].endTime; // if the names are equal, we put the end time on new array
+	function parseMedia(mediaObj) {
+		return {
+			'FILE/ENTRY ID': mediaObj.name.replace(/(\.\d)(\_.*)\./, '$1.','.'),
+			'TC IN': pointsToSeconds(mediaObj.start, mediaObj.rate.timebase),
+			'TC OUT': pointsToSeconds(mediaObj.end, mediaObj.rate.timebase),
+			'SOURCE IN': pointsToSeconds(mediaObj.in, mediaObj.rate.timebase),
+			'SOURCE OUT': pointsToSeconds(mediaObj.out, mediaObj.rate.timebase),
+			'SHOT DESCRIPTION': mediaObj.logginginfo.description,
+			'USAGE': '',
+			'UVUR': '',
+		}
+	}
 
-	// 	} else {
-	// 		cleansedArray.push(byName[i]);
-	// 	}
-	// }
-	// cleansedArray.sort(function(a, b){
-	// 	return a.startTime-b.startTime;
-	// })
+	function pointsToSeconds(points, fps=30) {
+		function showTwoDigits(number) {
+			return ("00" + number).slice(-2);
+		}
+		var h = Math.floor(points/(60*60*fps));
+		var m = (Math.floor(points/(60*fps))) % 60;
+		var s = (Math.floor(points/fps)) % 60;
+		var f = points % fps;
+		return showTwoDigits(h) + ":" + showTwoDigits(m) + ":" + showTwoDigits(s) + ":" + showTwoDigits(f);
+	}
 
-	// for (i=0, len = cleansedArray.length; i < len; i++) {
+	function saveXLS(json, sheets, name) {
+		var url = "http://oss.sheetjs.com/test_files/formula_stress_test.xlsx";
 
-	// 	if (document.getElementById("checker").checked == true) { //this is the checker that will find if it its a nested xml sequence (needs update)
-	// 		var inPoint = cleansedArray[i].inC;
-	// 		var outPoint = cleansedArray[i].outC;
-	// 			if (Math.round(cleansedArray[i].endTime / (document.forms['myform'].elements['speed'].value / 100)) > inPoint && Math.round(cleansedArray[i].startTime / (document.forms['myform'].elements['speed'].value / 100)) <= outPoint) {
-	// 				console.log('display speed')
-	// 				document.forms['myform'].elements['text'].value += cleansedArray[i].allElse + ',' + displaySpeedTime(cleansedArray[i].startTime - inPoint, timerate) + ',' + displaySpeedTime(cleansedArray[i].endTime,timerate) + ',' + cleansedArray[i].ownedBy + ',' + cleansedArray[i].bothUndScores + ',' + cleansedArray[i].VURcat + '\n';
-	// 			}
-	// 	} else {
-	// 		if (nestedCap.includes(cleansedArray[i].allElse.toUpperCase) == false) {
-	// 			console.log('no speed')
-	// 			document.forms['myform'].elements['text'].value += cleansedArray[i].allElse + ',' + displayTime(cleansedArray[i].startTime, timerate) + ',' + displayTime(cleansedArray[i].endTime,timerate) + ',' + cleansedArray[i].ownedBy + ',' + cleansedArray[i].bothUndScores + ',' + cleansedArray[i].VURcat + '\n';
-	// 		} else {
-	// 			document.forms['myform'].elements['text'].value += cleansedArray[i].allElse + '}' + cleansedArray[i].inC + '}' + cleansedArray[i].outC
-	// 		}
-	// 	}
-	// }
+		var req = new XMLHttpRequest();
+		req.open("GET", url, true);
+		req.responseType = "arraybuffer";
+
+		req.onload = function(e) {
+			var data = new Uint8Array(req.response);
+			var workbook = XLSX.read(data, {type:"array"});
+
+			workbook.SheetNames = [];
+			workbook.Sheets = {};
+			sheets.forEach(el => {
+				workbook.SheetNames.push(el);
+				workbook.Sheets[el] = XLSX.utils.json_to_sheet(json[el])
+			})
+
+			XLSX.writeFile(workbook, `${name || 'project'}.xls`);
+		}
+		req.send();
+	}
+	
 };
