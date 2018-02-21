@@ -60,10 +60,12 @@ function receivedText(event) {
 	var x2js = new X2JS();
 	var jsonObj = x2js.xml_str2json( event.target.result ).xmeml.sequence;
 
+	console.log(jsonObj);
+
 	var resultJSON = {
 		prjName: jsonObj.labels.label2,
-		audio: jsonObj.media.audio.track.filter(el => el.clipitem && el.clipitem.length)[0].clipitem,
-		video: jsonObj.media.video.track.filter(el => el.clipitem && el.clipitem.length)[0].clipitem
+		audio: (jsonObj.media.audio.track.filter(el => el.clipitem)[0] || jsonObj.media.audio.track.filter(el => el.clipitem)).clipitem,
+		video: (jsonObj.media.video.track.filter(el => el.clipitem)[0] || jsonObj.media.video.track.filter(el => el.clipitem)).clipitem
 	}
 
 	// console.log(resultJSON);
@@ -74,7 +76,7 @@ function receivedText(event) {
 	saveXLS(joinCuttedMedia(resultJSON), ['video', 'audio'], resultJSON.prjName)
 
 
-	
+
 
 	function joinCuttedMedia(obj) {
 		const a = [], v = [];
