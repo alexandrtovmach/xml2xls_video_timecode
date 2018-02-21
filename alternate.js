@@ -9,8 +9,8 @@ function loadFile(e) {
 	var input, file, fr;
 
 	if (typeof window.FileReader !== 'function') {
-			alert("The file API isn't supported on this browser yet.");
-			return false;
+		alert("The file API isn't supported on this browser yet.");
+		return false;
 	}
 
 	input = document.getElementById('myfile');
@@ -39,6 +39,7 @@ function receivedText(event) {
 	const parsedXML = new X2JS().xml_str2json( event.target.result );
 	const sequence = parsedXML.xmeml.sequence || parsedXML.xmeml.project.children.sequence;
 	const jsonObj = sequence.length? sequence[0]: sequence;
+	const includeAudio = document.forms['myform'].elements['audioStatus'].checked;
 	const headers = [...document.forms['myform'].elements['headers'].options].reduce((prev, el) => {
 		return {
 			...prev,
@@ -58,7 +59,7 @@ function receivedText(event) {
 
 	// console.log(parseMedia(resultJSON.video[0]));
 
-	saveXLS(joinCuttedMedia(resultJSON), document.forms['myform'].elements['audioStatus'].checked, resultJSON.prjName)
+	saveXLS(joinCuttedMedia(resultJSON), resultJSON.prjName)
 
 	function joinCuttedMedia(obj) {
 		const a = [], v = [];
@@ -77,26 +78,32 @@ function receivedText(event) {
 				v.push(obj.video[i]);
 			}
 		}
-
-		for (let i = 0; i < obj.audio.length; i++) {
-			if (obj.audio[i+1] && obj.audio[i].name === obj.audio[i+1].name) {
-				if (obj.audio[i].end === obj.audio[i+1].start) {
-					obj.audio[i].end = obj.audio[i+1].end;
-					a.push(obj.audio[i]);
-					i++;
+		if (includeAudio) {
+			for (let i = 0; i < obj.audio.length; i++) {
+				if (obj.audio[i+1] && obj.audio[i].name === obj.audio[i+1].name) {
+					if (obj.audio[i].end === obj.audio[i+1].start) {
+						obj.audio[i].end = obj.audio[i+1].end;
+						a.push(obj.audio[i]);
+						i++;
+					} else {
+						a.push(obj.audio[i]);
+						a.push(generateBlank(obj.audio[i].end, obj.audio[i+1].start));
+					}
 				} else {
 					a.push(obj.audio[i]);
-					a.push(generateBlank(obj.audio[i].end, obj.audio[i+1].start));
 				}
-			} else {
-				a.push(obj.audio[i]);
+			}
+			
+			return {
+				prjName: obj.prjName,
+				video: v.map(el => parseMedia(el)),
+				audio: a.map(el => parseMedia(el)),
 			}
 		}
 
 		return {
 			prjName: obj.prjName,
-			video: v.map(el => parseMedia(el)),
-			audio: a.map(el => parseMedia(el)),
+			video: v.map(el => parseMedia(el))
 		}
 	}
 
@@ -114,6 +121,7 @@ function receivedText(event) {
 	}
 
 	function parseMedia(mediaObj) {
+		console.log(mediaObj);
 		return {
 			'FILE/ENTRY ID': mediaObj.name.replace(/(\.\d)(\_.*)\./, '$1.','.'),
 			'TC IN': pointsToSeconds(mediaObj.start, mediaObj.rate.timebase),
@@ -150,7 +158,7 @@ function receivedText(event) {
 
 			workbook.SheetNames = [];
 			workbook.Sheets = {};
-			if (audio) {
+			if (includeAudio) {
 				workbook.SheetNames.push('audio');
 				workbook.Sheets['audio'] = XLSX.utils.json_to_sheet(json['audio'], {header:["FILE/ENTRY ID"], skipHeader:true})
 			}
