@@ -5,39 +5,37 @@
 <body>
   <form id="myform">
     <div id="sequenceInput">Upload XML project</div>
-    <input id="myfile" type="file" multiple/>
+    <input id="myfile" type="file"/>
 
     <label class="list">
       Field types:
-      <textarea id="text" rows="10" cols="40">SHOT DESCRIPTION,TC IN,TC OUT,FOOTAGE SOURCE,FILE/ENTRY ID,VUR CATEGORY</textarea>
+      <select id="headers" multiple>
+        <option selected value="name">FILE/ENTRY ID</option>
+        <option selected value="start">TC IN</option>
+        <option selected value="end">TC OUT</option>
+        <option selected value="in">SOURCE IN</option>
+        <option selected value="out">SOURCE OUT</option>
+        <option selected value="description">SHOT DESCRIPTION</option>
+        <option value="usage">USAGE</option>
+        <option value="uvur">UVUR</option>
+      </select>
     </label>
 
     <label class="list">
       Whitelist of tracks:
-      <textarea id="track" rows="1" cols="40" placeholder="Enter tracks, seperated by comma" onchange="parseInput(event)"></textarea>
+      <textarea id="track" rows="1" cols="40" placeholder="Enter tracks, seperated by comma or new line" onchange="parseInput(event)"></textarea>
     </label>
 
     <label class="list">
       Blacklist of tracks:
-      <textarea id="ignore" rows="1" cols="40" placeholder="Enter ignored tracks, seperated by comma" onchange="parseInput(event)"></textarea>
+      <textarea id="ignore" rows="1" cols="40" placeholder="Enter ignored tracks, seperated by comma or new line" onchange="parseInput(event)"></textarea>
     </label>
 
-    Contains nested sequence, seperate by comma
-    <textarea id="nested" rows="1" cols="40">nested sequence 03</textarea>
-
-    <br>
-
-    <label>This XML file is a nested sequence
-      <input type="checkbox" id="checker">
+    <label class="list">
+      Include audio?
+      <input type="checkbox" id="audioStatus">
     </label>
 
-    <div id="dependent-box">
-        speed %
-        <textarea id="speed" rows="1" cols="40">100</textarea>
-        <br>
-        nested sequence timecode in
-        <textarea id="timecode" rows="1" cols="40">00:00:36:12</textarea>
-    </div>
   </form>
 
   <button id="create" onclick="loadFile(event)">Create file</button>
@@ -62,6 +60,11 @@
       checkbox.change(function(e){
         dependent.toggle();
       });
+    });
+    $('option').mousedown(function(e) {
+      e.preventDefault();
+      $(this).prop('selected', !$(this).prop('selected'));
+      return false;
     });
   </script>
 </body>

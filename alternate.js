@@ -1,28 +1,7 @@
 function parseInput(event) {
-	// if (document.forms['myform'].elements['nested'].value !== '') {
-	// 	nestedSequence = document.forms['myform'].elements['nested'].value.split(',')
-	// 	nestedCap = nestedSequence.map(function(x){ return x.toUpperCase() });
-	// 	document.getElementById("sequenceInput").textContent = nestedCap[0]
-	// 	document.forms['myform'].elements['nested'].value = '';
-	// }
-
-	const regDelimiter = /\s{0,3},\s{0,3}/;
+	const regDelimiter = /\s*,\s*|\s*\n\s*/;
 	window._trackSelectorsArr = document.forms['myform'].elements['track'].value.split(regDelimiter);
 	window._mediaIgnoreArr = document.forms['myform'].elements['ignore'].value.split(regDelimiter).map((x)=> x.toUpperCase());
-
-	// if (evt.srcElement.value.split("\\")[2].split('.')[0].toUpperCase() == document.getElementById("sequenceInput").textContent){
-
-	// }
-
-	//mediaIgnoreArr;
-	// var numberArr2 = [];
-
-
-	// Iterate through each element in the original array
-	// for(var i = 0; i < trackSelectorsArr.length; i++) {
-	// 	// Decrement the value of the original array and push it to the new one
-	// 	numberArr2.push(trackSelectorsArr[i] - 1); //numberarr2 is the number of tracks
-	// }
 }
 
 function loadFile(e) {
@@ -57,26 +36,29 @@ function loadFile(e) {
 
 
 function receivedText(event) {
-	var x2js = new X2JS();
-	var jsonObj = x2js.xml_str2json( event.target.result ).xmeml.sequence;
+	const parsedXML = new X2JS().xml_str2json( event.target.result );
+	const sequence = parsedXML.xmeml.sequence || parsedXML.xmeml.project.children.sequence;
+	const jsonObj = sequence.length? sequence[0]: sequence;
+	const headers = [...document.forms['myform'].elements['headers'].options].reduce((prev, el) => {
+		return {
+			...prev,
+			[el.value]: el.selected
+		}
+	}, {})
 
-	console.log(jsonObj);
+	console.log(headers);
 
-	var resultJSON = {
+	const resultJSON = {
 		prjName: jsonObj.labels.label2,
 		audio: (jsonObj.media.audio.track.filter(el => el.clipitem)[0] || jsonObj.media.audio.track.filter(el => el.clipitem)).clipitem,
 		video: (jsonObj.media.video.track.filter(el => el.clipitem)[0] || jsonObj.media.video.track.filter(el => el.clipitem)).clipitem
 	}
 
-	// console.log(resultJSON);
+	console.log(resultJSON);
 
 	// console.log(parseMedia(resultJSON.video[0]));
 
-
-	saveXLS(joinCuttedMedia(resultJSON), ['video', 'audio'], resultJSON.prjName)
-
-
-
+	saveXLS(joinCuttedMedia(resultJSON), document.forms['myform'].elements['audioStatus'].checked, resultJSON.prjName)
 
 	function joinCuttedMedia(obj) {
 		const a = [], v = [];
@@ -139,8 +121,8 @@ function receivedText(event) {
 			'SOURCE IN': pointsToSeconds(mediaObj.in, mediaObj.rate.timebase),
 			'SOURCE OUT': pointsToSeconds(mediaObj.out, mediaObj.rate.timebase),
 			'SHOT DESCRIPTION': mediaObj.logginginfo.description,
-			'USAGE': '',
-			'UVUR': '',
+			'USAGE': null,
+			'UVUR': null,
 		}
 	}
 
@@ -155,7 +137,7 @@ function receivedText(event) {
 		return showTwoDigits(h) + ":" + showTwoDigits(m) + ":" + showTwoDigits(s) + ":" + showTwoDigits(f);
 	}
 
-	function saveXLS(json, sheets, name) {
+	function saveXLS(json, audio, name) {
 		var url = "http://oss.sheetjs.com/test_files/formula_stress_test.xlsx";
 
 		var req = new XMLHttpRequest();
@@ -168,10 +150,12 @@ function receivedText(event) {
 
 			workbook.SheetNames = [];
 			workbook.Sheets = {};
-			sheets.forEach(el => {
-				workbook.SheetNames.push(el);
-				workbook.Sheets[el] = XLSX.utils.json_to_sheet(json[el])
-			})
+			if (audio) {
+				workbook.SheetNames.push('audio');
+				workbook.Sheets['audio'] = XLSX.utils.json_to_sheet(json['audio'], {header:["FILE/ENTRY ID"], skipHeader:true})
+			}
+			workbook.SheetNames.push('video');
+			workbook.Sheets['video'] = XLSX.utils.json_to_sheet(json['video'])
 
 			XLSX.writeFile(workbook, `${name || 'project'}.xls`);
 		}

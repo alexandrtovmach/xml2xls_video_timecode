@@ -9,3 +9,12 @@ body {
     flex-direction: column;
     margin: 20px;
 }
+#headers {
+    height: 150px;
+    padding: 5px;
+    overflow: auto;
+}
+textarea {
+    resize: vertical;
+    max-height: 150px;
+}
