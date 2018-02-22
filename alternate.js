@@ -1,7 +1,31 @@
+
+window._trackSelectorsArr = [];
+window._mediaIgnoreArr = [];
+window._includeAudio = document.forms['myform'].elements['audioStatus'].checked;
+window._headers = [...document.forms['myform'].elements['headers'].options].reduce((prev, el) => {
+	if (!el.selected) {
+		return [
+			...prev,
+			el.innerHTML
+		]
+	}
+	return prev
+}, []);
+
 function parseInput(event) {
+	console.log('change')
 	const regDelimiter = /\s*,\s*|\s*\n\s*/;
-	window._trackSelectorsArr = document.forms['myform'].elements['track'].value.split(regDelimiter);
-	window._mediaIgnoreArr = document.forms['myform'].elements['ignore'].value.split(regDelimiter).map((x)=> x.toUpperCase());
+	window._trackSelectorsArr = document.forms['myform'].elements['track'].value.split(regDelimiter) || [];
+	window._mediaIgnoreArr = document.forms['myform'].elements['ignore'].value.split(regDelimiter) || [];
+	window._headers = [...document.forms['myform'].elements['headers'].options].reduce((prev, el) => {
+		if (!el.selected) {
+			return [
+				...prev,
+				el.innerHTML
+			]
+		}
+		return prev
+	}, []);
 }
 
 function loadFile(e) {
@@ -76,13 +100,6 @@ function allInOneArr(arr, field) {
 function receivedText(event) {
 	const parsedXML = new X2JS().xml_str2json( event.target.result );
 	const sequence = parsedXML.xmeml.sequence || parsedXML.xmeml.project.children.sequence;
-	const includeAudio = document.forms['myform'].elements['audioStatus'].checked;
-	const headers = [...document.forms['myform'].elements['headers'].options].reduce((prev, el) => {
-		return {
-			...prev,
-			[el.value]: el.selected
-		}
-	}, {});
 
 
 	saveXLS(joinCuttedMedia(sequenceToClipitem(sequence)), (sequence.length? sequence[0]: sequence).name)
@@ -104,10 +121,20 @@ function receivedText(event) {
 				v.push(arr[i]);
 			}
 		}
-
-		return v.sort((a,b) => a.start - b.start).map(el => parseMedia(el))
+		return v.filter(whiteAndBlacklistFilter).sort((a,b) => a.start - b.start).map(el => parseMedia(el)).map(headersFilter)
 	}
 
+	function whiteAndBlacklistFilter(elem) {
+		return elem && (window._trackSelectorsArr.includes(elem.name) || !window._mediaIgnoreArr.includes(elem.name));
+	}
+
+	function headersFilter(elem) {
+		window._headers.forEach(el => {
+			delete elem[el]
+		})
+
+		return elem;
+	}
 
 	function generateBlank(start, end) {
 		return {

@@ -3,13 +3,14 @@
 </head>
 
 <body>
+  <div class="premier"></div>
   <form id="myform">
     <div id="sequenceInput">Upload XML project</div>
     <input id="myfile" type="file"/>
 
     <label class="list">
       Field types:
-      <select id="headers" multiple>
+      <select id="headers" multiple onclick="parseInput(event)">
         <option selected value="name">FILE/ENTRY ID</option>
         <option selected value="start">TC IN</option>
         <option selected value="end">TC OUT</option>
@@ -36,10 +37,9 @@
       <input type="checkbox" id="audioStatus">
     </label>
 
-  </form>
+    <button id="create" onclick="loadFile(event)">Create file</button>
 
-  <button id="create" onclick="loadFile(event)">Create file</button>
-  <a download="test.csv" id="downloadlink" style="display: none">Download</a>
+  </form>
   
 
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
