@@ -153,8 +153,8 @@ function receivedText(event) {
 			'FILE/ENTRY ID': mediaObj.name.replace(/(\.\d)(\_.*)\./, '$1.','.'),
 			'TC IN': pointsToSeconds(mediaObj.start, mediaObj.rate.timebase),
 			'TC OUT': pointsToSeconds(mediaObj.end, mediaObj.rate.timebase),
-			'SOURCE IN': pointsToSeconds(mediaObj.in, mediaObj.rate.timebase),
-			'SOURCE OUT': pointsToSeconds(mediaObj.out, mediaObj.rate.timebase),
+			'SOURCE IN': (/\.jpg|gif|png|bmp|blank\sspace/).test(mediaObj.name)? '': pointsToSeconds(mediaObj.in, mediaObj.rate.timebase),
+			'SOURCE OUT': (/\.jpg|gif|png|bmp|blank\sspace/).test(mediaObj.name)? '': pointsToSeconds(mediaObj.out, mediaObj.rate.timebase),
 			'SHOT DESCRIPTION': mediaObj.logginginfo.description,
 			'USAGE': null,
 			'UVUR': null,
@@ -186,7 +186,7 @@ function receivedText(event) {
 			workbook.SheetNames = [];
 			workbook.Sheets = {};
 			workbook.SheetNames.push('video');
-			workbook.Sheets['video'] = XLSX.utils.json_to_sheet(json)
+			workbook.Sheets['video'] = XLSX.utils.json_to_sheet(json, {origin: { r: 1, c: 1 }})
 
 			XLSX.writeFile(workbook, `${name || 'project'}.xls`);
 		}
