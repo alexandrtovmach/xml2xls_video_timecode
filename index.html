@@ -1,70 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <link rel="stylesheet" href="main.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="main.css">
+    <title>XML 2 XLS</title>
 </head>
-
 <body>
-  <div class="premier"></div>
-  <form id="myform">
-    <div id="sequenceInput">Upload XML project</div>
-    <input id="myfile" type="file"/>
-
-    <label class="list">
-      Field types:
-      <select id="headers" multiple onclick="parseInput(event)">
-        <option selected value="name">FILE/ENTRY ID</option>
-        <option selected value="start">TC IN</option>
-        <option selected value="end">TC OUT</option>
-        <option selected value="in">SOURCE IN</option>
-        <option selected value="out">SOURCE OUT</option>
-        <option selected value="description">SHOT DESCRIPTION</option>
-        <option value="usage">USAGE</option>
-        <option value="uvur">UVUR</option>
-      </select>
-    </label>
-
-    <label class="list">
-      Whitelist of tracks:
-      <textarea id="track" rows="1" cols="40" placeholder="Enter tracks, seperated by comma or new line" onchange="parseInput(event)"></textarea>
-    </label>
-
-    <label class="list">
-      Blacklist of tracks:
-      <textarea id="ignore" rows="1" cols="40" placeholder="Enter ignored tracks, seperated by comma or new line" onchange="parseInput(event)"></textarea>
-    </label>
-
-    <label class="list">
-      Include audio?
-      <input type="checkbox" id="audioStatus">
-    </label>
-
-    <button id="create" onclick="loadFile(event)">Create file</button>
-
-  </form>
-  
-
-  <script src="http://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-  <script type="text/javascript" src="lib/xml2json.min.js"></script>
-  <script type="text/javascript" src="lib/xlsx.full.min.js"></script>
-  <!-- <script type="text/javascript" src="general.js"></script> -->
-  <script type="text/javascript" src="alternate.js"></script>
-  <script>
-    $(document).ready(function () {
-      var checkbox = $('#checker');
-      var dependent = $('#dependent-box');
-      if (checkbox.attr('checked') !== undefined){
-        dependent.show();
-      } else {
-        dependent.hide();
-      }
-  
-      checkbox.change(function(e){
-        dependent.toggle();
-      });
-    });
-    $('option').mousedown(function(e) {
-      e.preventDefault();
-      $(this).prop('selected', !$(this).prop('selected'));
-      return false;
-    });
-  </script>
+    <div class="premier"></div>
+    <form id="myform">
+        <label class="button-success file-input" title="Export your Premier Pro project in .xml file and upload they here">
+            Upload XML
+            <input id="myfile" type="file"/>
+        </label>
+    
+        <label class="list">
+        Field types:
+        <select id="headers" multiple onclick="parseInput(event)">
+            <option selected value="name">FILE/ENTRY ID</option>
+            <option selected value="start">TC IN</option>
+            <option selected value="end">TC OUT</option>
+            <option selected value="in">SOURCE IN</option>
+            <option selected value="out">SOURCE OUT</option>
+            <option selected value="description">SHOT DESCRIPTION</option>
+            <option value="usage">USAGE</option>
+            <option value="uvur">UVUR</option>
+        </select>
+        </label>
+    
+        <label class="list">
+        Whitelist of tracks:
+        <textarea id="track" placeholder="Enter tracks, seperated by comma or new line" onchange="parseInput(event)"></textarea>
+        </label>
+    
+        <label class="list">
+        Blacklist of tracks:
+        <textarea id="ignore"  placeholder="Enter ignored tracks, seperated by comma or new line" onchange="parseInput(event)"></textarea>
+        </label>
+    
+        <label class="list audio">
+        Include audio?
+        <input type="checkbox" id="audioStatus" onchange="parseInput(event)">
+        </label>
+    
+        <button id="create" onclick="loadFile(event)" class="button-secondary">Generate</button>
+    
+    </form>
+    <a href="mailto:alexandrtovmach@gmail.com" id="author">alexandrtovmach@gmail.com</a>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="lib/xml2json.min.js"></script>
+    <script type="text/javascript" src="lib/xlsx.full.min.js"></script>
+    <!-- <script type="text/javascript" src="general.js"></script> -->
+    <script type="text/javascript" src="alternate.js"></script>
+    <script>
+        $(document).ready(function () {
+        var checkbox = $('#checker');
+        var dependent = $('#dependent-box');
+        if (checkbox.attr('checked') !== undefined){
+            dependent.show();
+        } else {
+            dependent.hide();
+        }
+    
+        checkbox.change(function(e){
+            dependent.toggle();
+        });
+        });
+        $('option').mousedown(function(e) {
+        e.preventDefault();
+        $(this).prop('selected', !$(this).prop('selected'));
+        return false;
+        });
+    </script>
 </body>
+</html>

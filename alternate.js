@@ -13,10 +13,10 @@ window._headers = [...document.forms['myform'].elements['headers'].options].redu
 }, []);
 
 function parseInput(event) {
-	console.log('change')
 	const regDelimiter = /\s*,\s*|\s*\n\s*/;
 	window._trackSelectorsArr = document.forms['myform'].elements['track'].value.split(regDelimiter) || [];
 	window._mediaIgnoreArr = document.forms['myform'].elements['ignore'].value.split(regDelimiter) || [];
+	window._includeAudio = document.forms['myform'].elements['audioStatus'].checked;
 	window._headers = [...document.forms['myform'].elements['headers'].options].reduce((prev, el) => {
 		if (!el.selected) {
 			return [
@@ -59,12 +59,12 @@ function loadFile(e) {
 }
 
 
-function sequenceToClipitem(sequence) {
+function sequenceToClipitem(sequence, format) {
 	const jsonObj = sequence.length? sequence[0]: sequence;
-	return convertToSimpleArray(allInOneArr(jsonObj.media.video.track, 'clipitem')
+	return convertToSimpleArray(allInOneArr(jsonObj.media[format].track, 'clipitem')
 		.map(el => {
 			if (el.sequence) {
-				return (el.sequence[0] || el.sequence).media && sequenceToClipitem(el.sequence)
+				return (el.sequence[0] || el.sequence).media && sequenceToClipitem(el.sequence, format)
 			} else {
 				return el;
 			}
@@ -102,7 +102,7 @@ function receivedText(event) {
 	const sequence = parsedXML.xmeml.sequence || parsedXML.xmeml.project.children.sequence;
 
 
-	saveXLS(joinCuttedMedia(sequenceToClipitem(sequence)), (sequence.length? sequence[0]: sequence).name)
+	saveXLS(joinCuttedMedia(sequenceToClipitem(sequence, 'video')), (sequence.length? sequence[0]: sequence).name, window._includeAudio? joinCuttedMedia(sequenceToClipitem(sequence, 'audio')): null)
 
 	function joinCuttedMedia(arr) {
 		const v = [];
@@ -172,7 +172,7 @@ function receivedText(event) {
 		return showTwoDigits(h) + ":" + showTwoDigits(m) + ":" + showTwoDigits(s) + ":" + showTwoDigits(f);
 	}
 
-	function saveXLS(json, name) {
+	function saveXLS(json, name, audioJson) {
 		var url = "http://oss.sheetjs.com/test_files/formula_stress_test.xlsx";
 
 		var req = new XMLHttpRequest();
@@ -185,6 +185,10 @@ function receivedText(event) {
 
 			workbook.SheetNames = [];
 			workbook.Sheets = {};
+			if (audioJson) {
+				workbook.SheetNames.push('audio');
+				workbook.Sheets['audio'] = XLSX.utils.json_to_sheet(audioJson, {origin: { r: 1, c: 1 }})
+			}
 			workbook.SheetNames.push('video');
 			workbook.Sheets['video'] = XLSX.utils.json_to_sheet(json, {origin: { r: 1, c: 1 }})
 
