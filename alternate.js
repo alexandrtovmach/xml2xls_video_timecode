@@ -104,13 +104,14 @@ function c(arr, field, start) {
 	arr.filter(el => el[field]).forEach(el => {
 		if (el[field].length) {
 			res.push(...el[field].map(elem => {
-				console.log(elem.name, +elem.start + +start, +elem.start, +start)
+				// console.log(elem.name, +elem.start + +start, +elem.end + +start)
 				const cache = {...elem};
 				cache.start = +elem.start + +start;
 				cache.end = +elem.end + +start;
 				return cache
 			}));
 		} else {
+			// console.log(el[field].name, +el[field].start + +start, +el[field].end + +start)
 			const cache = {...el[field]};
 			cache.start = +el[field].start + +start;
 			cache.end = +el[field].end + +start;
