@@ -72,6 +72,54 @@ function sequenceToClipitem(sequence, format) {
 	)
 }
 
+
+function a(sequence, format, start=0) {
+	const jsonObj = sequence.length? sequence[0]: sequence;
+	return b(c(jsonObj.media[format].track, 'clipitem', start)
+		.map(el => {
+			if (el.sequence) {
+				return (el.sequence[0] || el.sequence).media && [...a(el.sequence, format, el.start)]
+			} else {
+				return el;
+			}
+		})
+	)
+}
+
+function b(array) {
+	var res=[];
+	for (var i=0; i<array.length; i++) {
+		if (!array[i]) {continue}
+		if (!Array.isArray(array[i])) {
+			res.push(array[i]);
+		} else {
+			res=[...res, ...b(array[i])];
+		}
+	}
+	return res;
+}
+
+function c(arr, field, start) {
+	const res = [];
+	arr.filter(el => el[field]).forEach(el => {
+		if (el[field].length) {
+			res.push(...el[field].map(elem => {
+				console.log(elem.name, +elem.start + +start, +elem.start, +start)
+				const cache = {...elem};
+				cache.start = +elem.start + +start;
+				cache.end = +elem.end + +start;
+				return cache
+			}));
+		} else {
+			const cache = {...el[field]};
+			cache.start = +el[field].start + +start;
+			cache.end = +el[field].end + +start;
+			res.push(cache);
+		}		
+	})
+	return res;
+}
+
 function convertToSimpleArray(array) {
 	var res=[];
 	for (var i=0; i<array.length; i++) {
@@ -101,8 +149,12 @@ function receivedText(event) {
 	const parsedXML = new X2JS().xml_str2json( event.target.result );
 	const sequence = parsedXML.xmeml.sequence || parsedXML.xmeml.project.children.sequence;
 
+	console.log(sequence);
+	// console.log(a(sequence, 'video'));
 
-	saveXLS(joinCuttedMedia(sequenceToClipitem(sequence, 'video')), (sequence.length? sequence[0]: sequence).name, window._includeAudio? joinCuttedMedia(sequenceToClipitem(sequence, 'audio')): null)
+	// joinCuttedMedia(a(sequence, 'video'))
+	saveXLS(joinCuttedMedia(a(sequence, 'video')), (sequence.length? sequence[0]: sequence).name, window._includeAudio? joinCuttedMedia(a(sequence, 'audio')): null)
+	// saveXLS(joinCuttedMedia(sequenceToClipitem(sequence, 'video')), (sequence.length? sequence[0]: sequence).name, window._includeAudio? joinCuttedMedia(sequenceToClipitem(sequence, 'audio')): null)
 
 	function joinCuttedMedia(arr) {
 		const v = [];
@@ -155,7 +207,7 @@ function receivedText(event) {
 			'TC OUT': pointsToSeconds(mediaObj.end, mediaObj.rate.timebase),
 			'SOURCE IN': (/\.jpg|gif|png|bmp|blank\sspace/).test(mediaObj.name)? '': pointsToSeconds(mediaObj.in, mediaObj.rate.timebase),
 			'SOURCE OUT': (/\.jpg|gif|png|bmp|blank\sspace/).test(mediaObj.name)? '': pointsToSeconds(mediaObj.out, mediaObj.rate.timebase),
-			'SHOT DESCRIPTION': mediaObj.logginginfo.description,
+			'SHOT DESCRIPTION': mediaObj.logginginfo && mediaObj.logginginfo.description,
 			'USAGE': null,
 			'UVUR': null,
 		}
