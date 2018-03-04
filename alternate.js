@@ -99,22 +99,24 @@ function b(array) {
 	return res;
 }
 
-function c(arr, field, start) {
+function c(arr, field, start, end) {
 	const res = [];
 	arr.filter(el => el[field]).forEach(el => {
 		if (el[field].length) {
 			res.push(...el[field].map(elem => {
-				// console.log(elem.name, +elem.start + +start, +elem.end + +start)
+				// console.log(elem.name, +elem.end + +start, +elem.start + +start + +elem.out - +elem.in)
 				const cache = {...elem};
+				// cache.start = +elem.start;
+				// cache.end = +elem.end;
 				cache.start = +elem.start + +start;
 				cache.end = +elem.end + +start;
 				return cache
 			}));
 		} else {
-			// console.log(el[field].name, +el[field].start + +start, +el[field].end + +start)
+			// console.log(el[field].name, +el[field].end + +start, +el[field].start + +start + +el[field].out - +el[field].in)
 			const cache = {...el[field]};
-			cache.start = +el[field].start + +start;
-			cache.end = +el[field].end + +start;
+			cache.start = +el[field].start;
+			cache.end = +el[field].end;
 			res.push(cache);
 		}		
 	})
@@ -150,31 +152,37 @@ function receivedText(event) {
 	const parsedXML = new X2JS().xml_str2json( event.target.result );
 	const sequence = parsedXML.xmeml.sequence || parsedXML.xmeml.project.children.sequence;
 
-	console.log(sequence);
+	// console.log(parsedXML);
+	// console.log(sequence);
 	// console.log(a(sequence, 'video'));
 
 	// joinCuttedMedia(a(sequence, 'video'))
-	saveXLS(joinCuttedMedia(a(sequence, 'video')), (sequence.length? sequence[0]: sequence).name, window._includeAudio? joinCuttedMedia(a(sequence, 'audio')): null)
+	saveXLS(a(sequence, 'video'), (sequence.length? sequence[0]: sequence).name, window._includeAudio? a(sequence, 'audio'): null)
+	// saveXLS(a(sequence, 'video'), (sequence.length? sequence[0]: sequence).name, window._includeAudio? a(sequence, 'audio'): null)
 	// saveXLS(joinCuttedMedia(sequenceToClipitem(sequence, 'video')), (sequence.length? sequence[0]: sequence).name, window._includeAudio? joinCuttedMedia(sequenceToClipitem(sequence, 'audio')): null)
+	// saveXLS(sequenceToClipitem(sequence, 'video'), (sequence.length? sequence[0]: sequence).name, window._includeAudio? sequenceToClipitem(sequence, 'audio'): null)
 
-	function joinCuttedMedia(arr) {
+	function joinCuttedMedia(arr, atglance) {
 		const v = [];
-
-		for (let i = 0; i < arr.length; i++) {
-			if (arr[i+1] && arr[i].name === arr[i+1].name) {
-				if (arr[i].end === arr[i+1].start) {
-					arr[i].end = arr[i+1].end;
-					v.push(arr[i]);
-					i++;
+		if (atglance) {
+			for (let i = 0; i < arr.length; i++) {
+				if (arr[i+1] && (arr[i].name === arr[i+1].name)) {
+					if (arr[i].end === arr[i+1].start) {
+						arr[i].end = arr[i+1].end;
+						v.push(arr[i]);
+						i++;
+					} else if ((arr[i].end <= arr[i+1].start)) {
+						v.push(arr[i]);
+						v.push(generateBlank(arr[i].end, arr[i+1].start));
+					}
 				} else {
 					v.push(arr[i]);
-					v.push(generateBlank(arr[i].end, arr[i+1].start));
 				}
-			} else {
-				v.push(arr[i]);
 			}
+			return v.filter(whiteAndBlacklistFilter).sort((a,b) => a.start - b.start).map(el => parseMedia(el)).map(headersFilter)
+		} else {
+			return arr.filter(whiteAndBlacklistFilter).sort((a,b) => a.start - b.start).map(el => parseMedia(el)).map(headersFilter)
 		}
-		return v.filter(whiteAndBlacklistFilter).sort((a,b) => a.start - b.start).map(el => parseMedia(el)).map(headersFilter)
 	}
 
 	function whiteAndBlacklistFilter(elem) {
@@ -240,10 +248,14 @@ function receivedText(event) {
 			workbook.Sheets = {};
 			if (audioJson) {
 				workbook.SheetNames.push('audio');
-				workbook.Sheets['audio'] = XLSX.utils.json_to_sheet(audioJson, {origin: { r: 1, c: 1 }})
+				workbook.SheetNames.push('audio_atGlance');
+				workbook.Sheets['audio'] = XLSX.utils.json_to_sheet(joinCuttedMedia(audioJson), {origin: { r: 1, c: 1 }})
+				workbook.Sheets['audio_atGlance'] = XLSX.utils.json_to_sheet(joinCuttedMedia(audioJson, true), {origin: { r: 1, c: 1 }})
 			}
 			workbook.SheetNames.push('video');
-			workbook.Sheets['video'] = XLSX.utils.json_to_sheet(json, {origin: { r: 1, c: 1 }})
+			workbook.SheetNames.push('video_atGlance');
+			workbook.Sheets['video'] = XLSX.utils.json_to_sheet(joinCuttedMedia(json), {origin: { r: 1, c: 1 }})
+			workbook.Sheets['video_atGlance'] = XLSX.utils.json_to_sheet(joinCuttedMedia(json, true), {origin: { r: 1, c: 1 }})
 
 			XLSX.writeFile(workbook, `${name || 'project'}.xls`);
 		}
