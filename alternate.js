@@ -58,69 +58,34 @@ function loadFile(e) {
 	}
 }
 
+function calcCoefficient(sequence, params) {
+	const clipsArr = allInOneArr(sequence, 'clipitem');
+	return (params.end - params.start)/(clipsArr[clipsArr.length - 1].end)
+}
 
-function sequenceToClipitem(sequence, format) {
+function sequenceToClipitem(sequence, format, coefficient, start) {
 	const jsonObj = sequence.length? sequence[0]: sequence;
-	return convertToSimpleArray(allInOneArr(jsonObj.media[format].track, 'clipitem')
+	const cacheParams = {};
+	return convertToSimpleArray(allInOneArr(jsonObj.media[format].track, 'clipitem', coefficient, start)
 		.map(el => {
 			if (el.sequence) {
-				return (el.sequence[0] || el.sequence).media && sequenceToClipitem(el.sequence, format)
+				cacheParams[el.name] = {
+					start: (cacheParams[el.name] && (cacheParams[el.name].start < el.start))? cacheParams[el.name].start: el.start,
+					end: (cacheParams[el.name] && (cacheParams[el.name].end > el.end))? cacheParams[el.name].end: el.end
+				}
+			}
+			return el;
+		})
+		.map(el => {
+			if (el.sequence) {
+				if ((el.sequence[0] || el.sequence).media) {
+					return [...sequenceToClipitem(el.sequence, format, calcCoefficient((el.sequence[0] || el.sequence).media[format].track, cacheParams[el.name]), +el.start)]
+				}
 			} else {
 				return el;
 			}
 		})
 	)
-}
-
-
-function a(sequence, format, start=0) {
-	const jsonObj = sequence.length? sequence[0]: sequence;
-	return b(c(jsonObj.media[format].track, 'clipitem', start)
-		.map(el => {
-			if (el.sequence) {
-				return (el.sequence[0] || el.sequence).media && [...a(el.sequence, format, el.start)]
-			} else {
-				return el;
-			}
-		})
-	)
-}
-
-function b(array) {
-	var res=[];
-	for (var i=0; i<array.length; i++) {
-		if (!array[i]) {continue}
-		if (!Array.isArray(array[i])) {
-			res.push(array[i]);
-		} else {
-			res=[...res, ...b(array[i])];
-		}
-	}
-	return res;
-}
-
-function c(arr, field, start, end) {
-	const res = [];
-	arr.filter(el => el[field]).forEach(el => {
-		if (el[field].length) {
-			res.push(...el[field].map(elem => {
-				// console.log(elem.name, +elem.end + +start, +elem.start + +start + +elem.out - +elem.in)
-				const cache = {...elem};
-				// cache.start = +elem.start;
-				// cache.end = +elem.end;
-				cache.start = +elem.start + +start;
-				cache.end = +elem.end + +start;
-				return cache
-			}));
-		} else {
-			// console.log(el[field].name, +el[field].end + +start, +el[field].start + +start + +el[field].out - +el[field].in)
-			const cache = {...el[field]};
-			cache.start = +el[field].start;
-			cache.end = +el[field].end;
-			res.push(cache);
-		}		
-	})
-	return res;
 }
 
 function convertToSimpleArray(array) {
@@ -136,13 +101,21 @@ function convertToSimpleArray(array) {
 	return res;
 }
 
-function allInOneArr(arr, field) {
+function allInOneArr(arr, field, coefficient=1, start=0) {
 	const res = [];
 	arr.filter(el => el[field]).forEach(el => {
 		if (el[field].length) {
-			res.push(...el[field]);
+			res.push(...el[field].map(elem => {
+				const cache = {...elem};
+				cache.start = +elem.start*coefficient + start;
+				cache.end = +elem.end*coefficient + start;
+				return cache
+			}));
 		} else {
-			res.push(el[field]);
+			const cache = {...el[field]};
+			cache.start = +el[field].start*coefficient + start;
+			cache.end = +el[field].end*coefficient + start;
+			res.push(cache);
 		}		
 	})
 	return res;
@@ -152,15 +125,9 @@ function receivedText(event) {
 	const parsedXML = new X2JS().xml_str2json( event.target.result );
 	const sequence = parsedXML.xmeml.sequence || parsedXML.xmeml.project.children.sequence;
 
-	// console.log(parsedXML);
-	// console.log(sequence);
-	// console.log(a(sequence, 'video'));
+	console.log(sequenceToClipitem(sequence, 'video'));
 
-	// joinCuttedMedia(a(sequence, 'video'))
-	saveXLS(a(sequence, 'video'), (sequence.length? sequence[0]: sequence).name, window._includeAudio? a(sequence, 'audio'): null)
-	// saveXLS(a(sequence, 'video'), (sequence.length? sequence[0]: sequence).name, window._includeAudio? a(sequence, 'audio'): null)
-	// saveXLS(joinCuttedMedia(sequenceToClipitem(sequence, 'video')), (sequence.length? sequence[0]: sequence).name, window._includeAudio? joinCuttedMedia(sequenceToClipitem(sequence, 'audio')): null)
-	// saveXLS(sequenceToClipitem(sequence, 'video'), (sequence.length? sequence[0]: sequence).name, window._includeAudio? sequenceToClipitem(sequence, 'audio'): null)
+	saveXLS(sequenceToClipitem(sequence, 'video'), (sequence.length? sequence[0]: sequence).name, window._includeAudio? sequenceToClipitem(sequence, 'audio'): null)
 
 	function joinCuttedMedia(arr, atglance) {
 		const v = [];
