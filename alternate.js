@@ -61,6 +61,7 @@ function loadFile(e) {
 function calcCoefficient(sequence, params) {
 	const clipsArr = allInOneArr(sequence, 'clipitem');
 	return (params.end - params.start)/(clipsArr[clipsArr.length - 1].end)
+	// return 1
 }
 
 function sequenceToClipitem(sequence, format, coefficient, start) {
@@ -102,10 +103,27 @@ function convertToSimpleArray(array) {
 }
 
 function allInOneArr(arr, field, coefficient=1, start=0) {
+	// console.log(arr)
 	const res = [];
-	arr.filter(el => el[field]).forEach(el => {
-		if (el[field].length) {
-			res.push(...el[field].map(elem => {
+	if (arr.forEach) {
+		arr.filter(el => el[field]).forEach(el => {
+			if (el[field].length) {
+				res.push(...el[field].map(elem => {
+					const cache = {...elem};
+					cache.start = +elem.start*coefficient + start;
+					cache.end = +elem.end*coefficient + start;
+					return cache
+				}));
+			} else {
+				const cache = {...el[field]};
+				cache.start = +el[field].start*coefficient + start;
+				cache.end = +el[field].end*coefficient + start;
+				res.push(cache);
+			}		
+		})
+	} else {
+		if (arr[field].length) {
+			res.push(...arr[field].map(elem => {
 				const cache = {...elem};
 				cache.start = +elem.start*coefficient + start;
 				cache.end = +elem.end*coefficient + start;
@@ -113,11 +131,11 @@ function allInOneArr(arr, field, coefficient=1, start=0) {
 			}));
 		} else {
 			const cache = {...el[field]};
-			cache.start = +el[field].start*coefficient + start;
-			cache.end = +el[field].end*coefficient + start;
+			cache.start = +arr[field].start*coefficient + start;
+			cache.end = +arr[field].end*coefficient + start;
 			res.push(cache);
-		}		
-	})
+		}
+	}
 	return res;
 }
 
@@ -125,7 +143,7 @@ function receivedText(event) {
 	const parsedXML = new X2JS().xml_str2json( event.target.result );
 	const sequence = parsedXML.xmeml.sequence || parsedXML.xmeml.project.children.sequence;
 
-	console.log(sequenceToClipitem(sequence, 'video'));
+	// console.log(parsedXML);
 
 	saveXLS(sequenceToClipitem(sequence, 'video'), (sequence.length? sequence[0]: sequence).name, window._includeAudio? sequenceToClipitem(sequence, 'audio'): null)
 
