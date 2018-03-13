@@ -1,4 +1,5 @@
 
+const cacheParams = {};
 window._trackSelectorsArr = [];
 window._mediaIgnoreArr = [];
 window._includeAudio = document.forms['myform'].elements['audioStatus'].checked;
@@ -61,18 +62,28 @@ function loadFile(e) {
 function calcCoefficient(sequence, params) {
 	const clipsArr = allInOneArr(sequence, 'clipitem');
 	return (params.end - params.start)/(clipsArr[clipsArr.length - 1].end)
-	// return 1
 }
 
-function sequenceToClipitem(sequence, format, coefficient, start) {
-	const jsonObj = sequence.length? sequence[0]: sequence;
-	const cacheParams = {};
-	return convertToSimpleArray(allInOneArr(jsonObj.media[format].track, 'clipitem', coefficient, start)
+
+function limiterSequence(sequence, format, inParam, outParam) {
+	(sequence[0] || sequence).media[format].track = [{
+		'clipitem': convertToSimpleArray(allInOneArr((sequence[0] || sequence).media[format].track, 'clipitem')
+			.filter(clip => {
+				return !((+clip.start > +outParam) || (+clip.end < +inParam))
+			}))
+	}];
+	return sequence;
+}
+
+function sequenceToClipitem(sequence, format, ...args) {
+	const result = convertToSimpleArray(allInOneArr((sequence[0] || sequence).media[format].track, 'clipitem', ...args)
 		.map(el => {
 			if (el.sequence) {
-				cacheParams[el.name] = {
-					start: (cacheParams[el.name] && (cacheParams[el.name].start < el.start))? cacheParams[el.name].start: el.start,
-					end: (cacheParams[el.name] && (cacheParams[el.name].end > el.end))? cacheParams[el.name].end: el.end
+				if (!el.sequence.media) {
+					el.sequence = limiterSequence(JSON.parse(cacheParams[el.sequence._id]), format, el.in, el.out)
+				} else {
+					cacheParams[el.sequence._id] = JSON.stringify(el.sequence);
+					el.sequence = limiterSequence(el.sequence, format, el.in, el.out)
 				}
 			}
 			return el;
@@ -80,13 +91,15 @@ function sequenceToClipitem(sequence, format, coefficient, start) {
 		.map(el => {
 			if (el.sequence) {
 				if ((el.sequence[0] || el.sequence).media) {
-					return [...sequenceToClipitem(el.sequence, format, calcCoefficient((el.sequence[0] || el.sequence).media[format].track, cacheParams[el.name]), +el.start)]
+					return [...sequenceToClipitem(el.sequence, format, +el.in, +el.out, +el.start, +el.end)]
 				}
 			} else {
 				return el;
 			}
 		})
 	)
+	console.log(result)
+	return result;
 }
 
 function convertToSimpleArray(array) {
@@ -102,22 +115,21 @@ function convertToSimpleArray(array) {
 	return res;
 }
 
-function allInOneArr(arr, field, coefficient=1, start=0) {
-	// console.log(arr)
+function allInOneArr(arr, field, inTime=0, outTime=0, startTime=0, endTime=100000000) {
 	const res = [];
 	if (arr.forEach) {
 		arr.filter(el => el[field]).forEach(el => {
 			if (el[field].length) {
 				res.push(...el[field].map(elem => {
 					const cache = {...elem};
-					cache.start = +elem.start*coefficient + start;
-					cache.end = +elem.end*coefficient + start;
+					cache.start = Math.max(+elem.start - (+elem.start && inTime) + startTime, startTime);
+					cache.end = Math.min(+elem.end - inTime + startTime, endTime);
 					return cache
 				}));
 			} else {
 				const cache = {...el[field]};
-				cache.start = +el[field].start*coefficient + start;
-				cache.end = +el[field].end*coefficient + start;
+				cache.start = Math.max(+el[field].start - (+el[field].start && inTime) + startTime, startTime);
+				cache.end = Math.min(+el[field].end - inTime + startTime, endTime);
 				res.push(cache);
 			}		
 		})
@@ -125,14 +137,14 @@ function allInOneArr(arr, field, coefficient=1, start=0) {
 		if (arr[field].length) {
 			res.push(...arr[field].map(elem => {
 				const cache = {...elem};
-				cache.start = +elem.start*coefficient + start;
-				cache.end = +elem.end*coefficient + start;
+				cache.start = Math.max(+elem.start - (+elem.start && inTime) + startTime, startTime);
+				cache.end = Math.min(+elem.end - inTime + startTime, endTime);
 				return cache
 			}));
 		} else {
 			const cache = {...el[field]};
-			cache.start = +arr[field].start*coefficient + start;
-			cache.end = +arr[field].end*coefficient + start;
+			cache.start = Math.max(+arr[field].start - (+arr[field].start && inTime) + startTime, startTime);
+			cache.end = Math.min(+arr[field].end - inTime + startTime, endTime);
 			res.push(cache);
 		}
 	}
@@ -142,8 +154,6 @@ function allInOneArr(arr, field, coefficient=1, start=0) {
 function receivedText(event) {
 	const parsedXML = new X2JS().xml_str2json( event.target.result );
 	const sequence = parsedXML.xmeml.sequence || parsedXML.xmeml.project.children.sequence;
-
-	// console.log(parsedXML);
 
 	saveXLS(sequenceToClipitem(sequence, 'video'), (sequence.length? sequence[0]: sequence).name, window._includeAudio? sequenceToClipitem(sequence, 'audio'): null)
 
